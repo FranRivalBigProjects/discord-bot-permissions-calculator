@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discord Bot Permissions Calculator - Generate Permission Integer</title>
+<meta name="description" content="Free Discord bot permissions calculator. Select permissions to generate the integer value for your bot invite link, or paste a permission number to decode it.">
+<meta name="google-site-verification" content="REPLACE_WITH_YOUR_VERIFICATION_CODE">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0d0f12;
+  color: #d7dbe0;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.6;
+  padding: 24px 16px 60px 16px;
+}
+.wrap { max-width: 760px; margin: 0 auto; }
+h1 {
+  font-size: 22px;
+  color: #7ee787;
+  margin-bottom: 6px;
+}
+.subtitle { color: #8b949e; font-size: 14px; margin-bottom: 24px; }
+.panel {
+  background: #14171a;
+  border: 1px solid #2a2f36;
+  border-radius: 6px;
+  padding: 18px;
+  margin-bottom: 20px;
+}
+.panel h2 { font-size: 15px; color: #58a6ff; margin-bottom: 12px; }
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+@media (min-width: 560px) {
+  .grid { grid-template-columns: 1fr 1fr; }
+}
+.perm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 4px 0;
+}
+.perm-row input { accent-color: #7ee787; width: 16px; height: 16px; }
+.output {
+  background: #0a0c0e;
+  border: 1px solid #2a2f36;
+  border-radius: 4px;
+  padding: 14px;
+  font-size: 20px;
+  color: #7ee787;
+  word-break: break-all;
+  margin-top: 10px;
+}
+.output-label { font-size: 12px; color: #8b949e; margin-bottom: 4px; }
+.decode-input {
+  width: 100%;
+  background: #0a0c0e;
+  border: 1px solid #2a2f36;
+  border-radius: 4px;
+  color: #d7dbe0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  padding: 10px;
+  margin-bottom: 12px;
+}
+.decode-list { font-size: 13px; color: #d7dbe0; }
+.decode-list span { color: #7ee787; }
+.btn {
+  background: #238636;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+.btn.secondary { background: #21262d; border: 1px solid #2a2f36; }
+.invite-link {
+  font-size: 12px;
+  color: #8b949e;
+  word-break: break-all;
+  margin-top: 10px;
+}
+article { font-size: 13px; color: #a9b1bb; margin-top: 30px; }
+article h2 { font-size: 15px; color: #58a6ff; margin: 20px 0 8px 0; }
+article p { margin-bottom: 10px; }
+footer { text-align: center; font-size: 11px; color: #4a5158; margin-top: 40px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Discord Bot Permissions Calculator</h1>
+<p class="subtitle">Select permissions to generate the integer for your bot invite link, or decode an existing permission number.</p>
+
+<div class="panel">
+<h2>1. Select Permissions</h2>
+<div class="grid" id="permGrid"></div>
+<div class="output-label">Permission integer:</div>
+<div class="output" id="permOutput">0</div>
+<div class="invite-link" id="inviteLink"></div>
+</div>
+
+<div class="panel">
+<h2>2. Decode a Permission Number</h2>
+<input type="text" class="decode-input" id="decodeInput" placeholder="e.g. 8589934593">
+<button class="btn" id="decodeBtn">Decode</button>
+<button class="btn secondary" id="clearBtn">Clear</button>
+<div class="decode-list" id="decodeList"></div>
+</div>
+
+<article>
+<h2>How Discord Permission Integers Work</h2>
+<p>Discord represents each permission as a power of two (a bit flag). To combine multiple permissions into one number, Discord adds the bit values together. This calculator handles that math for you and also reverses it, so you can paste a permission integer and see exactly which permissions it grants.</p>
+<p>These numbers are commonly used when building a bot invite link in the format https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=YOUR_NUMBER&scope=bot</p>
+<h2>Why the Numbers Get So Large</h2>
+<p>Discord has added dozens of granular permissions over time (threads, events, application commands, and more), so the highest bit values now exceed what a standard 32-bit integer can hold. This tool uses arbitrary-precision math internally so large permission sets still calculate correctly.</p>
+</article>
+
+<footer>Client-side tool. No data is sent to any server.</footer>
+</div>
+
+<script>
+var PERMS = [
+  ["CREATE_INSTANT_INVITE", "1"],
+  ["KICK_MEMBERS", "2"],
+  ["BAN_MEMBERS", "4"],
+  ["ADMINISTRATOR", "8"],
+  ["MANAGE_CHANNELS", "16"],
+  ["MANAGE_GUILD", "32"],
+  ["ADD_REACTIONS", "64"],
+  ["VIEW_AUDIT_LOG", "128"],
+  ["PRIORITY_SPEAKER", "256"],
+  ["STREAM", "512"],
+  ["VIEW_CHANNEL", "1024"],
+  ["SEND_MESSAGES", "2048"],
+  ["SEND_TTS_MESSAGES", "4096"],
+  ["MANAGE_MESSAGES", "8192"],
+  ["EMBED_LINKS", "16384"],
+  ["ATTACH_FILES", "32768"],
+  ["READ_MESSAGE_HISTORY", "65536"],
+  ["MENTION_EVERYONE", "131072"],
+  ["USE_EXTERNAL_EMOJIS", "262144"],
+  ["VIEW_GUILD_INSIGHTS", "524288"],
+  ["CONNECT", "1048576"],
+  ["SPEAK", "2097152"],
+  ["MUTE_MEMBERS", "4194304"],
+  ["DEAFEN_MEMBERS", "8388608"],
+  ["MOVE_MEMBERS", "16777216"],
+  ["USE_VAD", "33554432"],
+  ["CHANGE_NICKNAME", "67108864"],
+  ["MANAGE_NICKNAMES", "134217728"],
+  ["MANAGE_ROLES", "268435456"],
+  ["MANAGE_WEBHOOKS", "536870912"],
+  ["MANAGE_EMOJIS_AND_STICKERS", "1073741824"],
+  ["USE_APPLICATION_COMMANDS", "2147483648"],
+  ["REQUEST_TO_SPEAK", "4294967296"],
+  ["MANAGE_EVENTS", "8589934592"],
+  ["MANAGE_THREADS", "17179869184"],
+  ["CREATE_PUBLIC_THREADS", "34359738368"],
+  ["CREATE_PRIVATE_THREADS", "68719476736"],
+  ["USE_EXTERNAL_STICKERS", "137438953472"],
+  ["SEND_MESSAGES_IN_THREADS", "274877906944"],
+  ["USE_EMBEDDED_ACTIVITIES", "549755813888"],
+  ["MODERATE_MEMBERS", "1099511627776"]
+];
+
+function buildGrid() {
+  var grid = document.getElementById('permGrid');
+  var html = '';
+  var i;
+  for (i = 0; i < PERMS.length; i++) {
+    html += '<label class="perm-row"><input type="checkbox" data-value="' + PERMS[i][1] + '" class="permCheck"> ' + PERMS[i][0] + '</label>';
+  }
+  grid.innerHTML = html;
+  var checks = document.getElementsByClassName('permCheck');
+  for (i = 0; i < checks.length; i++) {
+    checks[i].addEventListener('change', updateOutput);
+  }
+}
+
+function updateOutput() {
+  var checks = document.getElementsByClassName('permCheck');
+  var total = BigInt(0);
+  var i;
+  for (i = 0; i < checks.length; i++) {
+    if (checks[i].checked) {
+      total = total + BigInt(checks[i].getAttribute('data-value'));
+    }
+  }
+  document.getElementById('permOutput').innerHTML = total.toString();
+  document.getElementById('inviteLink').innerHTML = 'Example: https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=' + total.toString() + '&scope=bot';
+}
+
+function decodePermissions() {
+  var input = document.getElementById('decodeInput').value.trim();
+  var listEl = document.getElementById('decodeList');
+  if (!input || isNaN(Number(input))) {
+    listEl.innerHTML = 'Please enter a valid number.';
+    return;
+  }
+  var value;
+  try {
+    value = BigInt(input);
+  } catch (e) {
+    listEl.innerHTML = 'Please enter a valid integer.';
+    return;
+  }
+  var results = [];
+  var i;
+  for (i = 0; i < PERMS.length; i++) {
+    var bit = BigInt(PERMS[i][1]);
+    if ((value & bit) === bit && bit !== BigInt(0)) {
+      results.push(PERMS[i][0]);
+    }
+  }
+  if (results.length === 0) {
+    listEl.innerHTML = 'No known permissions found in this number.';
+    return;
+  }
+  var html = '';
+  for (i = 0; i < results.length; i++) {
+    html += '<span>&#10003;</span> ' + results[i] + '<br>';
+  }
+  listEl.innerHTML = html;
+}
+
+function clearAll() {
+  var checks = document.getElementsByClassName('permCheck');
+  var i;
+  for (i = 0; i < checks.length; i++) {
+    checks[i].checked = false;
+  }
+  updateOutput();
+  document.getElementById('decodeInput').value = '';
+  document.getElementById('decodeList').innerHTML = '';
+}
+
+buildGrid();
+updateOutput();
+document.getElementById('decodeBtn').addEventListener('click', decodePermissions);
+document.getElementById('clearBtn').addEventListener('click', clearAll);
+</script>
+</body>
+</html>
